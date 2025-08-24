@@ -26,6 +26,7 @@ app.use(
   serve({
     client: inngest,
     functions: [generateBrandKit],
+    signingKey: process.env.INNGEST_SIGNING_KEY,
   })
 );
 
