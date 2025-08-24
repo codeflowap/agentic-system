@@ -1,0 +1,70 @@
+{
+  "id": "f1f16c13",
+  "timestamp": "2025-08-15T15:28:42.030Z",
+  "url": "https://www.spoonity.com",
+  "result": {
+    "crawlSummary": {
+      "url": "https://www.spoonity.com",
+      "pagesProcessed": 4,
+      "totalContentLength": 39402,
+      "processingTime": "26s",
+      "businessType": "online",
+      "dataStored": true,
+      "robotsTxtFound": false,
+      "robotsTxtRestrictive": false
+    },
+    "brandKit": {
+      "aboutBrand": "Spoonity is a next-generation customer loyalty platform specializing in the quick-serve food and beverage industry. They offer customized digital loyalty programs, leveraging AI and machine learning to personalize customer experiences and drive growth for restaurant chains globally.  Spoonity provides a holistic approach, from program design and implementation to launch, monitoring, and ongoing optimization. Their platform integrates with existing POS systems and offers features like rewards programs, loyalty analytics, marketing automation, managed loyalty services, gift cards, and mobile apps.",
+      "idealCustomerProfile": "Quick-serve restaurant chains (global) seeking to enhance customer loyalty, drive repeat business, and increase sales.  Ranges from small businesses to large enterprises. Value data-driven insights, personalized marketing, and seamless POS integration.  Desire a comprehensive loyalty solution with ongoing support and optimization.",
+      "brandPointOfView": "Spoonity positions itself as a forward-thinking partner for restaurants, emphasizing the importance of joyful customer experiences as the foundation for loyalty and growth. They highlight their data-driven approach, AI-powered platform, and seamless integrations, differentiating themselves from traditional points-based programs. Spoonity focuses on delivering tangible ROI through personalized marketing and optimized campaigns.",
+      "toneOfVoice": "Informative, professional, and enthusiastic.  Emphasizes partnership and customer-centricity.  Uses data and testimonials to build credibility.  Forward-looking and innovative, highlighting the \"future of loyalty.\"",
+      "authorPersona": "Experienced loyalty consultant, knowledgeable about industry trends and best practices.  Passionate about helping restaurants succeed.  Data-driven and results-oriented.  Friendly and approachable.",
+      "ctaText": [
+        "TO BE IMPLEMENTED LATER"
+      ],
+      "ctaDestination": [
+        "TO BE IMPLEMENTED LATER"
+      ],
+      "editableSummary": "Spoonity offers a comprehensive, AI-powered loyalty platform for quick-serve restaurants. They provide customized programs, data-driven insights, and seamless POS integrations to enhance customer experiences and drive growth.  Key features include rewards programs, loyalty analytics, marketing automation, and managed loyalty services. Spoonity serves a global client base and emphasizes a holistic, partnership-driven approach.",
+      "businessIndustry": "Customer Loyalty & Engagement, SaaS, Restaurant Technology",
+      "serviceKeywords": [
+        "Loyalty Programs",
+        "Rewards Programs",
+        "Loyalty Analytics",
+        "Marketing Automation",
+        "POS Integration",
+        "Mobile Apps",
+        "Gift Cards"
+      ],
+      "locationIndicators": [
+        "Global",
+        "Canada",
+        "US",
+        "Latin America"
+      ]
+    },
+    "competitors": [
+      {
+        "name": "Punchh",
+        "reason": "Punchh offers AI-driven loyalty and engagement solutions for restaurant chains, with POS integration, analytics, and marketing automation, directly targeting the same quick-serve and fast-casual segments as Spoonity.",
+        "website": "https://punchh.com",
+        "analysisMethod": "llm_enhanced"
+      },
+      {
+        "name": "Paytronix",
+        "reason": "Paytronix provides comprehensive digital loyalty, rewards, and gift card programs for restaurants and convenience stores, with strong analytics and mobile app features, making it a direct competitor.",
+        "website": "https://paytronix.com",
+        "analysisMethod": "llm_enhanced"
+      },
+      {
+        "name": "Thanx",
+        "reason": "Thanx specializes in customer loyalty and engagement platforms for restaurants, focusing on personalized rewards, marketing automation, and seamless POS integration, competing directly with Spoonity.",
+        "website": "https://thanx.com",
+        "analysisMethod": "llm_enhanced"
+      }
+    ],
+    "rawDataStored": true,
+    "futureRecallEnabled": true
+  },
+  "type": "complete_business_analysis"
+}
