@@ -14,15 +14,29 @@ export const brandAnalysisTool = createTool({
   handler: async ({ url, title, content }, { network }) => {
     console.log(`[BrandAnalysisTool] Starting brand analysis for ${url}`);
     
+    // Get full scraped data from network state (not from agent parameters)
+    if (!network) {
+      throw new Error("Network context required to access scraped data");
+    }
+    
+    const state = network.state.kv as Map<string, any>;
+    const scrapedData = state.get("scrapedData");
+    
+    if (!scrapedData) {
+      throw new Error("No scraped data found in network state. Run scraping tool first.");
+    }
+    
+    console.log(`[BrandAnalysisTool] Processing ${scrapedData.content.length} characters with Gemini 1.5 Pro`);
+    
     const modelService = new ModelService();
     
     const prompt = `You are a brand strategy expert. Analyze the following website content and create a comprehensive brand kit.
 
-Website URL: ${url}
-Website Title: ${title || "N/A"}
+Website URL: ${scrapedData.url}
+Website Title: ${scrapedData.title || "N/A"}
 
 Content:
-${content.substring(0, 50000)} 
+${scrapedData.content} 
 
 Based on this content, create a detailed brand kit with the following sections. Be specific and comprehensive:
 

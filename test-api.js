@@ -17,12 +17,12 @@ async function testAPI() {
   }
   
   // Test 2: Generate Brand Kit
-  console.log("\n2️⃣ Testing brand kit generation for spoonity.com...");
+  console.log("\n2️⃣ Testing brand kit generation for tapistro.com...");
   try {
     const generateRes = await fetch(`${baseURL}/api/business/generate-brandkit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: "https://spoonity.com" }),
+      body: JSON.stringify({ url: "https://tapistro.com" }),
     });
     
     const result = await generateRes.json();

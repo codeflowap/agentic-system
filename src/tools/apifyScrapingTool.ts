@@ -25,15 +25,17 @@ export const apifyScrapingTool = createTool({
       let mockData: any;
       
       // Determine which mock file to use based on URL
+      let mockFilePath;
       if (url.includes("spoonity") || url.includes("localhost")) {
-        const mockFilePath = path.join(__dirname, "../../spoonity-39000.json");
-        const fileContent = await fs.readFile(mockFilePath, "utf-8");
-        mockData = JSON.parse(fileContent);
+        mockFilePath = path.join(__dirname, "../../spoonity-39000.json");
+        console.log(`[ApifyScrapingTool] Using SMALL file: spoonity-39000.json for ${url}`);
       } else {
-        const mockFilePath = path.join(__dirname, "../../tapistro.com_180000.json");
-        const fileContent = await fs.readFile(mockFilePath, "utf-8");
-        mockData = JSON.parse(fileContent);
+        mockFilePath = path.join(__dirname, "../../tapistro.com_180000.json");
+        console.log(`[ApifyScrapingTool] Using LARGE file: tapistro.com_180000.json for ${url}`);
       }
+      
+      const fileContent = await fs.readFile(mockFilePath, "utf-8");
+      mockData = JSON.parse(fileContent);
       
       // Transform mock data to ScrapedData format
       const scrapedData: ScrapedData = {
@@ -50,15 +52,26 @@ export const apifyScrapingTool = createTool({
       
       console.log(`[ApifyScrapingTool] Successfully scraped ${scrapedData.content.length} characters`);
       
-      // Store in network state if available
+      // Store FULL data in network state for tools to access
       if (network) {
         const state = network.state.kv as Map<string, any>;
         state.set("scrapedData", scrapedData);
       }
       
+      // Return ONLY summary to agent (avoid token limits)
+      const contentPreview = scrapedData.content.substring(0, 500) + "...";
+      const agentSummary = {
+        url: scrapedData.url,
+        title: scrapedData.title,
+        contentLength: scrapedData.content.length,
+        contentPreview,
+        scrapedAt: scrapedData.scrapedAt,
+      };
+      
       return {
         success: true,
-        data: scrapedData,
+        data: agentSummary, // Agent gets summary only
+        message: `Scraped ${scrapedData.content.length} characters. Full content stored in network state for analysis tools.`
       };
     } catch (error) {
       console.error("[ApifyScrapingTool] Error during scraping:", error);

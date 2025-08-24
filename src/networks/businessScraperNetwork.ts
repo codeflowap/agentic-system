@@ -22,6 +22,7 @@ export const businessScraperNetwork = createNetwork<NetworkState>({
   defaultModel: openai({ 
     model: "gpt-4",
     temperature: 0.1,
+    maxTokens: 8000,  // Network orchestration
   }),
   
   // Custom router to control the agent flow

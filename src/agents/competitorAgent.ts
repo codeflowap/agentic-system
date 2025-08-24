@@ -27,7 +27,7 @@ The brand kit from the previous agent's analysis is your primary source of infor
   model: openai({ 
     model: "gpt-4",
     temperature: 0.1,
-    maxTokens: 2000,
+    maxTokens: 4000,  // Reasonable for competitor analysis orchestration
   }),
   
   tools: [competitorAnalysisTool],

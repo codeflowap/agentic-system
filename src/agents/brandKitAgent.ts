@@ -25,7 +25,7 @@ When you receive a URL, always start by scraping it, then analyze the content to
   model: openai({ 
     model: "gpt-4", 
     temperature: 0.1,
-    maxTokens: 3000,
+    maxTokens: 8000,  // Reasonable for orchestration, tools handle large content
   }),
   
   tools: [apifyScrapingTool, brandAnalysisTool],
