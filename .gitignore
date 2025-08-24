@@ -47,6 +47,7 @@ pids/
 
 # Data and results
 data/results/
+data/raw_scraped/
 backups/
 
 # Temporary files
