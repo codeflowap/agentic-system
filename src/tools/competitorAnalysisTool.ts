@@ -7,16 +7,14 @@ export const competitorAnalysisTool = createTool({
   name: "competitor_analysis",
   description: "Identifies and analyzes competitors based on brand kit information using web search and Gemini 1.5 Pro",
   parameters: z.object({
-    brandKit: z.object({
-      aboutTheBrand: z.string(),
-      idealCustomerProfile: z.string(),
-      brandPointOfView: z.string(),
-      toneOfVoice: z.string(),
-      authorPersona: z.string(),
-    }).describe("The brand kit to use for competitor identification"),
+    aboutTheBrand: z.string().describe("Description of the brand"),
+    idealCustomerProfile: z.string().describe("The ideal customer profile"),
+    brandPointOfView: z.string().describe("The brand's point of view"),
+    toneOfVoice: z.string().describe("The brand's tone of voice"),
+    authorPersona: z.string().describe("The brand's author persona"),
     url: z.string().describe("The original website URL"),
   }),
-  handler: async ({ brandKit, url }) => {
+  handler: async ({ aboutTheBrand, idealCustomerProfile, brandPointOfView, toneOfVoice, authorPersona, url }, { network }) => {
     console.log(`[CompetitorAnalysisTool] Starting competitor analysis for ${url}`);
     
     const modelService = new ModelService();
@@ -24,11 +22,11 @@ export const competitorAnalysisTool = createTool({
     const prompt = `You are a competitive intelligence expert. Based on the following brand kit, identify 3 direct competitors.
 
 Brand Kit Information:
-- About the Brand: ${brandKit.aboutTheBrand}
-- Ideal Customer Profile: ${brandKit.idealCustomerProfile}
-- Brand Point of View: ${brandKit.brandPointOfView}
-- Tone of Voice: ${brandKit.toneOfVoice}
-- Author Persona: ${brandKit.authorPersona}
+- About the Brand: ${aboutTheBrand}
+- Ideal Customer Profile: ${idealCustomerProfile}
+- Brand Point of View: ${brandPointOfView}
+- Tone of Voice: ${toneOfVoice}
+- Author Persona: ${authorPersona}
 
 Based on this brand profile, identify 3 companies that:
 1. Serve the same or very similar customer segments
@@ -71,6 +69,17 @@ Format your response as a JSON object:
       }
       
       console.log(`[CompetitorAnalysisTool] Successfully identified ${competitorAnalysis.competitors.length} competitors`);
+      
+      // Store in network state if available
+      if (network) {
+        const state = network.state.kv as Map<string, any>;
+        state.set("competitors", competitorAnalysis);
+        
+        // Mark this step as completed
+        const completedSteps = state.get("completedSteps") || [];
+        completedSteps.push("competitorAnalysis");
+        state.set("completedSteps", completedSteps);
+      }
       
       return {
         success: true,

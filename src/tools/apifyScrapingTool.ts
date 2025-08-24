@@ -12,10 +12,10 @@ export const apifyScrapingTool = createTool({
   name: "apify_scraping",
   description: "Scrapes website content using Apify API (currently using mock data for testing)",
   parameters: z.object({
-    url: z.string().url().describe("The URL to scrape"),
+    url: z.string().describe("The URL to scrape"),
     useApify: z.boolean().default(true).describe("Whether to use Apify API or mock data"),
   }),
-  handler: async ({ url, useApify }) => {
+  handler: async ({ url, useApify }, { network }) => {
     console.log(`[ApifyScrapingTool] Starting scrape for URL: ${url}`);
     
     // For now, we'll use mock data instead of actual Apify API
@@ -49,6 +49,12 @@ export const apifyScrapingTool = createTool({
       };
       
       console.log(`[ApifyScrapingTool] Successfully scraped ${scrapedData.content.length} characters`);
+      
+      // Store in network state if available
+      if (network) {
+        const state = network.state.kv as Map<string, any>;
+        state.set("scrapedData", scrapedData);
+      }
       
       return {
         success: true,

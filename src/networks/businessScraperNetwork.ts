@@ -1,11 +1,19 @@
 import { createNetwork, openai } from "@inngest/agent-kit";
 import { brandKitAgent } from "../agents/brandKitAgent.js";
 import { competitorAgent } from "../agents/competitorAgent.js";
-import { apifyScrapingTool } from "../tools/apifyScrapingTool.js";
-import type { BrandKitResult, ScrapedData, BrandKit, CompetitorAnalysis } from "../types/index.js";
+import type { BrandKitResult } from "../types/index.js";
 import { nanoid } from "nanoid";
 
-export const businessScraperNetwork = createNetwork({
+// Define the network state interface
+interface NetworkState {
+  url: string;
+  scrapedData?: any;
+  brandKit?: any;
+  competitors?: any;
+  completedSteps: string[];
+}
+
+export const businessScraperNetwork = createNetwork<NetworkState>({
   name: "Business Scraper Network",
   description: "Orchestrates web scraping and AI analysis to generate brand kits and identify competitors",
   
@@ -16,86 +24,66 @@ export const businessScraperNetwork = createNetwork({
     temperature: 0.1,
   }),
   
-  maxConcurrency: 1, // Sequential execution
+  // Custom router to control the agent flow
+  router: ({ network, lastResult, callCount }) => {
+    const state = network.state.kv as Map<string, any>;
+    const completedSteps = state.get("completedSteps") || [];
+    
+    // Step 1: Brand Kit Analysis (includes scraping)
+    if (!completedSteps.includes("brandAnalysis")) {
+      console.log("[Router] Routing to Brand Kit Agent for scraping and analysis");
+      return brandKitAgent;
+    }
+    
+    // Step 2: Competitor Analysis
+    if (!completedSteps.includes("competitorAnalysis") && state.get("brandKit")) {
+      console.log("[Router] Routing to Competitor Agent for competitor identification");
+      return competitorAgent;
+    }
+    
+    // All steps completed
+    console.log("[Router] All analysis steps completed");
+    return undefined; // End the network
+  },
+  
+  maxIter: 5, // Maximum iterations to prevent infinite loops
 });
 
 export async function runBusinessAnalysis(url: string): Promise<BrandKitResult> {
   console.log(`[BusinessScraperNetwork] Starting analysis for ${url}`);
   
   try {
-    // Phase 1: Scrape the website
-    console.log(`[BusinessScraperNetwork] Phase 1: Scraping website`);
-    const scrapingResult = await apifyScrapingTool.handler({
+    // Initialize the network state
+    const initialState: NetworkState = {
       url,
-      useApify: true,
-    });
+      completedSteps: [],
+    };
     
-    if (!scrapingResult.success || !scrapingResult.data) {
-      throw new Error("Failed to scrape website");
-    }
-    
-    const scrapedData: ScrapedData = scrapingResult.data;
-    console.log(`[BusinessScraperNetwork] Scraped ${scrapedData.content.length} characters`);
-    
-    // Phase 2: Run Brand Kit Analysis Agent
-    console.log(`[BusinessScraperNetwork] Phase 2: Running Brand Kit Agent`);
-    const brandKitPrompt = `Analyze this scraped website content and create a comprehensive brand kit:
-    
-URL: ${scrapedData.url}
-Title: ${scrapedData.title || "N/A"}
-Content: ${scrapedData.content}
-
-Use the brand_analysis tool to generate a structured brand kit.`;
-    
-    const brandKitResponse = await brandKitAgent.run(brandKitPrompt);
-    
-    // Extract brand kit from agent response
-    let brandKit: BrandKit;
-    if (brandKitResponse && typeof brandKitResponse === 'object' && 'brandKit' in brandKitResponse) {
-      brandKit = (brandKitResponse as any).brandKit;
-    } else {
-      // Parse from text response if needed
-      const jsonMatch = String(brandKitResponse).match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        brandKit = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Failed to extract brand kit from agent response");
+    // Run the network with the initial prompt
+    const result = await businessScraperNetwork.run(
+      `Analyze the website at ${url}. 
+      First, scrape the website using the apify_scraping tool.
+      Then, analyze the scraped content to create a comprehensive brand kit using the brand_analysis tool.
+      Finally, based on the brand kit, identify 3 direct competitors using the competitor_analysis tool.`,
+      {
+        state: {
+          kv: new Map(Object.entries(initialState)),
+        },
       }
+    );
+    
+    // Extract results from the network state
+    const finalState = result.state.kv as Map<string, any>;
+    const scrapedData = finalState.get("scrapedData");
+    const brandKit = finalState.get("brandKit");
+    const competitors = finalState.get("competitors");
+    
+    if (!scrapedData || !brandKit || !competitors) {
+      throw new Error("Network did not complete all required analysis steps");
     }
     
-    console.log(`[BusinessScraperNetwork] Brand kit generated successfully`);
-    
-    // Phase 3: Run Competitor Analysis Agent
-    console.log(`[BusinessScraperNetwork] Phase 3: Running Competitor Agent`);
-    const competitorPrompt = `Based on this brand kit, identify 3 direct competitors:
-
-Brand Kit:
-${JSON.stringify(brandKit, null, 2)}
-
-Original URL: ${url}
-
-Use the competitor_analysis tool to find and analyze competitors.`;
-    
-    const competitorResponse = await competitorAgent.run(competitorPrompt);
-    
-    // Extract competitors from agent response
-    let competitors: CompetitorAnalysis;
-    if (competitorResponse && typeof competitorResponse === 'object' && 'competitors' in competitorResponse) {
-      competitors = (competitorResponse as any).competitors;
-    } else {
-      // Parse from text response if needed
-      const jsonMatch = String(competitorResponse).match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        competitors = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("Failed to extract competitors from agent response");
-      }
-    }
-    
-    console.log(`[BusinessScraperNetwork] Identified ${competitors.competitors.length} competitors`);
-    
-    // Phase 4: Compile final result
-    const result: BrandKitResult = {
+    // Compile final result
+    const finalResult: BrandKitResult = {
       id: `bkit_${nanoid(10)}`,
       url,
       brandKit,
@@ -105,7 +93,7 @@ Use the competitor_analysis tool to find and analyze competitors.`;
     };
     
     console.log(`[BusinessScraperNetwork] Analysis complete for ${url}`);
-    return result;
+    return finalResult;
     
   } catch (error) {
     console.error(`[BusinessScraperNetwork] Error during analysis:`, error);

@@ -7,25 +7,22 @@ export const brandAnalysisTool = createTool({
   name: "brand_analysis",
   description: "Analyzes scraped website content to generate a comprehensive brand kit using Gemini 1.5 Pro",
   parameters: z.object({
-    scrapedData: z.object({
-      url: z.string(),
-      title: z.string().optional(),
-      content: z.string(),
-      metadata: z.record(z.any()).optional(),
-    }).describe("The scraped website data to analyze"),
+    url: z.string().describe("The URL of the scraped website"),
+    title: z.string().describe("The title of the scraped website"),
+    content: z.string().describe("The scraped website content"),
   }),
-  handler: async ({ scrapedData }) => {
-    console.log(`[BrandAnalysisTool] Starting brand analysis for ${scrapedData.url}`);
+  handler: async ({ url, title, content }, { network }) => {
+    console.log(`[BrandAnalysisTool] Starting brand analysis for ${url}`);
     
     const modelService = new ModelService();
     
     const prompt = `You are a brand strategy expert. Analyze the following website content and create a comprehensive brand kit.
 
-Website URL: ${scrapedData.url}
-Website Title: ${scrapedData.title || "N/A"}
+Website URL: ${url}
+Website Title: ${title || "N/A"}
 
 Content:
-${scrapedData.content.substring(0, 50000)} 
+${content.substring(0, 50000)} 
 
 Based on this content, create a detailed brand kit with the following sections. Be specific and comprehensive:
 
@@ -60,6 +57,21 @@ Format your response as a JSON object with these exact keys:
       const brandKit: BrandKit = JSON.parse(jsonMatch[0]);
       
       console.log(`[BrandAnalysisTool] Successfully generated brand kit`);
+      
+      // Store in network state if available
+      if (network) {
+        const state = network.state.kv as Map<string, any>;
+        state.set("brandKit", brandKit);
+        
+        // Also store the scraped data used for analysis
+        const scrapedData = { url, title, content };
+        state.set("scrapedData", scrapedData);
+        
+        // Mark this step as completed
+        const completedSteps = state.get("completedSteps") || [];
+        completedSteps.push("brandAnalysis");
+        state.set("completedSteps", completedSteps);
+      }
       
       return {
         success: true,
