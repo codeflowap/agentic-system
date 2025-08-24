@@ -4,9 +4,15 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import type { ScrapedData } from "../types/index.js";
+import { nanoid } from "nanoid";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Token estimation: ~4 characters per token (conservative estimate)
+const CHARS_PER_TOKEN = 4;
+const MAX_TOKENS_FOR_GEMINI = 950000; // Stay under 1M limit
+const MAX_CHARS_FOR_GEMINI = MAX_TOKENS_FOR_GEMINI * CHARS_PER_TOKEN;
 
 export const apifyScrapingTool = createTool({
   name: "apify_scraping",
@@ -37,41 +43,83 @@ export const apifyScrapingTool = createTool({
       const fileContent = await fs.readFile(mockFilePath, "utf-8");
       mockData = JSON.parse(fileContent);
       
-      // Transform mock data to ScrapedData format
-      const scrapedData: ScrapedData = {
+      // Get original content
+      const originalContent = mockData.text || mockData.content || JSON.stringify(mockData);
+      const originalLength = originalContent.length;
+      
+      console.log(`[ApifyScrapingTool] Successfully scraped ${originalLength} characters`);
+      
+      // 1. Save ORIGINAL untruncated data locally (even if >1M tokens)
+      const rawDataDir = path.join(__dirname, "../../data/raw_scraped");
+      await fs.mkdir(rawDataDir, { recursive: true });
+      
+      const originalScrapedData: ScrapedData = {
         url: url,
         title: mockData.title || "Website Title",
-        content: mockData.text || mockData.content || JSON.stringify(mockData),
+        content: originalContent,
         metadata: {
           description: mockData.description || "",
           keywords: mockData.keywords || "",
           scrapedBy: useApify ? "apify" : "mock",
+          originalLength: originalLength,
+          wasTruncated: false,
         },
         scrapedAt: new Date(),
       };
       
-      console.log(`[ApifyScrapingTool] Successfully scraped ${scrapedData.content.length} characters`);
+      const rawFileName = `raw_scraped_${nanoid(8)}_${new Date().getTime()}.json`;
+      const rawFilePath = path.join(rawDataDir, rawFileName);
+      await fs.writeFile(rawFilePath, JSON.stringify(originalScrapedData, null, 2));
+      console.log(`[ApifyScrapingTool] Saved original data (${originalLength} chars) to: ${rawFilePath}`);
       
-      // Store FULL data in network state for tools to access
-      if (network) {
-        const state = network.state.kv as Map<string, any>;
-        state.set("scrapedData", scrapedData);
+      // 2. Create truncated version for Gemini (≤950k tokens)
+      let processedContent = originalContent;
+      let wasTruncated = false;
+      
+      if (originalLength > MAX_CHARS_FOR_GEMINI) {
+        processedContent = originalContent.substring(0, MAX_CHARS_FOR_GEMINI);
+        wasTruncated = true;
+        console.log(`[ApifyScrapingTool] Content truncated from ${originalLength} to ${processedContent.length} characters for Gemini processing`);
       }
       
-      // Return ONLY summary to agent (avoid token limits)
-      const contentPreview = scrapedData.content.substring(0, 500) + "...";
+      const processedScrapedData: ScrapedData = {
+        url: url,
+        title: mockData.title || "Website Title",
+        content: processedContent, // Truncated for tools
+        metadata: {
+          description: mockData.description || "",
+          keywords: mockData.keywords || "",
+          scrapedBy: useApify ? "apify" : "mock",
+          originalLength: originalLength,
+          wasTruncated: wasTruncated,
+          rawDataFile: rawFileName,
+        },
+        scrapedAt: new Date(),
+      };
+      
+      // 3. Store TRUNCATED data in network state for tools to access
+      if (network) {
+        const state = network.state.kv as Map<string, any>;
+        state.set("scrapedData", processedScrapedData);
+      }
+      
+      // 4. Return ONLY summary to agent (avoid token limits)
+      const contentPreview = processedScrapedData.content.substring(0, 500) + "...";
       const agentSummary = {
-        url: scrapedData.url,
-        title: scrapedData.title,
-        contentLength: scrapedData.content.length,
+        url: processedScrapedData.url,
+        title: processedScrapedData.title,
+        originalLength: originalLength,
+        processedLength: processedScrapedData.content.length,
+        wasTruncated: wasTruncated,
         contentPreview,
-        scrapedAt: scrapedData.scrapedAt,
+        scrapedAt: processedScrapedData.scrapedAt,
+        rawDataFile: rawFileName,
       };
       
       return {
         success: true,
         data: agentSummary, // Agent gets summary only
-        message: `Scraped ${scrapedData.content.length} characters. Full content stored in network state for analysis tools.`
+        message: `Scraped ${originalLength} characters. ${wasTruncated ? `Truncated to ${processedContent.length} chars for processing.` : 'No truncation needed.'} Original saved locally, processed data in network state.`
       };
     } catch (error) {
       console.error("[ApifyScrapingTool] Error during scraping:", error);
